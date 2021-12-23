@@ -82,15 +82,6 @@ def fft(filepath, scale="log"):
             primary_freq_ch1 = primary_freq(data_df, interval=interval, interval_unit=unit_of_interval, data_type="raw")
             print(f'freq(CH1) by fft: {primary_freq_ch1}')
         
-        fig = plt.figure()
-        
-        ax1 = fig.add_subplot(1, 2, 1)
-        ax2 = fig.add_subplot(1, 2, 2)
-        
-        ax1 = data_df.plot(kind="scatter", x="frame",y="CH2", color="b", label="CH2", s=1)
-        data_df.plot.scatter(x="frame", y="CH1", color="g", label="CH1", s=1, ax=ax1)
-        ax1.set_xlabel(f"Time ({unit_of_interval})")
-
         F = np.fft.fft(data_df["CH2"]) # 変換結果
         N = len(data_df["CH2"])
         dt = interval*10**-6
@@ -109,17 +100,31 @@ def fft(filepath, scale="log"):
         df_fft = pd.DataFrame(fft_list, columns=["freq", "amp"])
         primary_freq_ch2 = primary_freq(df_fft, interval=interval, interval_unit=unit_of_interval, data_type="fft")
         print(f"Peak freq(CH2): {primary_freq_ch2}")
-
-        # ax.plot(freq[1:int(N/2)], Amp[1:int(N/2)])
-        ax2.plot(freq[1:int(N/2)], Amp[1:int(N/2)])
-        ax2.set_xlabel("Freqency [Hz]")
-        ax2.set_ylabel("Amplitude")
-        ax2.grid()
         
+        
+        pkpk1 = setup_df.at[2, "CH1"]
+        pkpk2 = setup_df.at[2, "CH2"]
+        
+        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12,6))
+        
+        ax[0].scatter(x="frame", y="CH2", color="b", label=f"CH2 ({pkpk2})", s=1, data=data_df)
+        # ax[0] = data_df.plot(kind="scatter", x="frame",y="CH2", color="b", label="CH2", s=1)
+        # ax2 = ax[0].twinx()
+        ax[0].scatter(x="frame", y="CH1", color="g", label=f"CH1 ({pkpk1})", s=1,data=data_df)
+        # data_df.plot.scatter(x="frame", y="CH1", color="g", label="CH1", s=1, ax=ax[0])
+        ax[0].set_title(f"Voltage signal (AC) (CH1, CH2) of {filepath}")
+        ax[0].set_xlabel(f"Time ({unit_of_interval})")
+        ax[0].set_ylabel("Voltage")
+        
+        ax[1].plot(freq[1:int(N/2)], Amp[1:int(N/2)])
+        ax[1].set_xlabel("Freqency [Hz]")
+        ax[1].set_ylabel("Amplitude")
+        ax[1].set_xscale("log")
+        ax[1].grid()
+        ax[1].set_title(f"FFT Spectrum of {filepath} CH2")
+        
+        ax[0].legend()
         fig.tight_layout()
-        
-        plt.title(filepath)
-        plt.xscale("log")
         
         plt.show()
         
@@ -134,7 +139,10 @@ def fft(filepath, scale="log"):
         data_df["CH2"] = data_df["CH2"].apply(str_to_float)
         print("-"*50)
         pprint(setup_df)
-        ax = data_df.plot(kind="scatter", x="frame",y="CH2", color="b", label="CH2", s=1)
+        
+        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12,6))
+        
+        ax[0] = data_df.plot(kind="scatter", x="frame",y="CH2", color="b", label="CH2", s=1)
         plt.xlabel(f"Time ({unit_of_interval})")
 
         F = np.fft.fft(data_df["CH2"]) # 変換結果
@@ -150,16 +158,13 @@ def fft(filepath, scale="log"):
         # ax[2].legend()
         # ax[2].set_xlabel("Number of data")
 
-        plt.show()
-
         Amp = np.abs(F/(N/2)) # 振幅
 
-        fig, ax = plt.subplots()
         # ax.plot(freq[1:int(N/2)], Amp[1:int(N/2)])
-        ax.plot(freq[0:int(N/2)], Amp[0:int(N/2)])
-        ax.set_xlabel("Freqency [Hz]")
-        ax.set_ylabel("Amplitude")
-        ax.grid()
+        ax[1].plot(freq[0:int(N/2)], Amp[0:int(N/2)])
+        ax[1].set_xlabel("Freqency [Hz]")
+        ax[1].set_ylabel("Amplitude")
+        ax[1].grid()
         plt.show()
         
 def sequense_fft(dir_path, scale="log"):
