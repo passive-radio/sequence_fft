@@ -10,10 +10,13 @@ from pandas.core import base
 import matplotlib.pyplot as plt
 
 
-def get_and_split(filepath, header):
-    df = pd.read_csv(filepath, sep=",", header=0)
+def get_and_split(filepath, header, footer=None):
     
-    return df[0:header-1], df[header:-1]
+    df = pd.read_csv(filepath, sep=",", header=0)
+    if footer == None or type(footer) != int:
+        return df[0:header-1], df[header:-1]
+    elif footer != None and type(footer) == int:
+        return df[0:header-1], df[header:-1-footer]
 
 def index_to_frame(value, interval):
     return float(value)*interval
@@ -56,9 +59,9 @@ def primary_freq(df, interval, interval_unit, data_type="raw"):
         freq = df.at[df['amp'].idxmax(), "freq"]
         return f"{freq:.3E}"
     
-def fft(filepath, scale="log"):
+def fft(filepath, output_dir, scale="log", header=0, footer=None):
     if scale=="log":
-        setup_df, data_df = get_and_split(filepath, 7)
+        setup_df, data_df = get_and_split(filepath, header, footer)
 
         data_df = data_df.set_axis(["frame", "CH1", "CH2"],axis="columns").reset_index().reset_index().drop(columns=["index", "frame"]).set_axis(["index", "CH1", "CH2"],axis="columns").copy()
         interval, unit_of_interval = parse_sec_unit(setup_df.loc[5,"CH1"])
@@ -107,14 +110,15 @@ def fft(filepath, scale="log"):
         
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12,6))
         
-        ax[0].scatter(x="frame", y="CH2", color="b", label=f"CH2 ({pkpk2})", s=1, data=data_df)
+        ax[0].scatter(x="frame", y="CH2", color="b", label=f"CH2 (pk-pk:{pkpk2})", s=1, data=data_df)
         # ax[0] = data_df.plot(kind="scatter", x="frame",y="CH2", color="b", label="CH2", s=1)
         # ax2 = ax[0].twinx()
-        ax[0].scatter(x="frame", y="CH1", color="g", label=f"CH1 ({pkpk1})", s=1,data=data_df)
+        ax[0].scatter(x="frame", y="CH1", color="g", label=f"CH1 (pk-pk:{pkpk1}, freq: {freq_ch1}, freq(by fft): {primary_freq_ch1})", s=1,data=data_df)
         # data_df.plot.scatter(x="frame", y="CH1", color="g", label="CH1", s=1, ax=ax[0])
         ax[0].set_title(f"Voltage signal (AC) (CH1, CH2) of {filepath}")
         ax[0].set_xlabel(f"Time ({unit_of_interval})")
         ax[0].set_ylabel("Voltage")
+        
         
         ax[1].plot(freq[1:int(N/2)], Amp[1:int(N/2)])
         ax[1].set_xlabel("Freqency [Hz]")
@@ -126,10 +130,14 @@ def fft(filepath, scale="log"):
         ax[0].legend()
         fig.tight_layout()
         
+        filename = os.path.splitext(os.path.basename(filepath))[0]
+        
+        plt.savefig(output_dir + filename +".png", dpi=300, bbox_inches='tight')
         plt.show()
         
+        
     elif scale=="linear":
-        setup_df, data_df = get_and_split(filepath, 7)
+        setup_df, data_df = get_and_split(filepath, header, footer)
 
         data_df = data_df.set_axis(["frame", "CH1", "CH2"],axis="columns").reset_index().reset_index().drop(columns=["index", "frame"]).set_axis(["index", "CH1", "CH2"],axis="columns").copy()
         interval, unit_of_interval = parse_sec_unit(setup_df.loc[5,"CH1"])
@@ -167,14 +175,14 @@ def fft(filepath, scale="log"):
         ax[1].grid()
         plt.show()
         
-def sequense_fft(dir_path, scale="log"):
+def sequense_fft(dir_path, output_dir, scale="log", header=0, footer=None):
     
     import glob
     csv_path_list=glob.glob(dir_path+"*.csv")
         
     if scale=="log":
         for i in range(len(csv_path_list)):
-            fft(csv_path_list[i], scale=scale)
+            fft(csv_path_list[i], output_dir=output_dir, scale=scale, header=header)
 
 #フォーマットが csv 以外もあるので txt 形式のファイルを csv に変換して spectrum ディレクトリに合流させる
 def txt_to_csv(base_path, output_path):
@@ -192,10 +200,10 @@ def txt_to_csv(base_path, output_path):
 if __name__ == "__main__":
     base_path = "spectrum/"
     endpoint = "data_42_005.csv"
-    output_path = "spectrum/"
+    output_path = "fft_results/"
     
     # txt_to_csv("spectrum_txt/", output_path)
     
     # print( pd.read_csv(base_path+endpoint).columns)
     
-    sequense_fft(base_path)
+    sequense_fft(base_path, output_dir=output_path, header=7)
