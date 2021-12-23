@@ -67,6 +67,7 @@ def fft(filepath, scale="log"):
         data_df["CH1"] = data_df["CH1"].apply(str_to_float)
         data_df["CH2"] = data_df["CH2"].apply(str_to_float)
         print("-"*50)
+        print(filepath)
         pprint(setup_df)
         
         
@@ -119,7 +120,7 @@ def fft(filepath, scale="log"):
         plt.show()
         
     elif scale=="linear":
-        setup_df, data_df = get_and_split(base_url + endpoint, 7)
+        setup_df, data_df = get_and_split(filepath, 7)
 
         data_df = data_df.set_axis(["frame", "CH1", "CH2"],axis="columns").reset_index().reset_index().drop(columns=["index", "frame"]).set_axis(["index", "CH1", "CH2"],axis="columns").copy()
         interval, unit_of_interval = parse_sec_unit(setup_df.loc[5,"CH1"])
@@ -159,18 +160,33 @@ def fft(filepath, scale="log"):
         
 def sequense_fft(dir_path, scale="log"):
     
-    import glob, os
-    csv_path_list=glob.glob("spectrum/*.csv")
+    import glob
+    csv_path_list=glob.glob(dir_path+"*.csv")
         
     if scale=="log":
         for i in range(len(csv_path_list)):
-            print(csv_path_list[i])
             fft(csv_path_list[i], scale=scale)
 
+#フォーマットが csv 以外もあるので txt 形式のファイルを csv に変換して spectrum ディレクトリに合流させる
+def txt_to_csv(base_path, output_path):
+    import glob,os
+    txt_file_path=glob.glob(base_path+"*.txt")
+    for i in range(len(txt_file_path)):
+        filename = os.path.splitext(os.path.basename(txt_file_path[i]))[0]
+        
+        print(txt_file_path[i])
+        df = pd.read_csv(txt_file_path[i], encoding="cp932", sep="\t")
+        df = df.set_axis(["Channel", "nan", "CH1", "nan", "CH2"], axis="columns").copy()
+        df = df.drop(columns="nan").set_index("Channel").copy()
+        df.to_csv(output_path+filename+".csv")
+
 if __name__ == "__main__":
-    base_url = "spectrum/"
+    base_path = "spectrum/"
     endpoint = "data_42_005.csv"
-    output_url = ""
-    sequense_fft(base_url)
+    output_path = "spectrum/"
     
+    # txt_to_csv("spectrum_txt/", output_path)
     
+    # print( pd.read_csv(base_path+endpoint).columns)
+    
+    sequense_fft(base_path)
