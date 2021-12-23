@@ -82,11 +82,14 @@ def fft(filepath, scale="log"):
             primary_freq_ch1 = primary_freq(data_df, interval=interval, interval_unit=unit_of_interval, data_type="raw")
             print(f'freq(CH1) by fft: {primary_freq_ch1}')
         
+        fig = plt.figure()
         
+        ax1 = fig.add_subplot(1, 2, 1)
+        ax2 = fig.add_subplot(1, 2, 2)
         
-        # ax = data_df.plot(kind="scatter", x="frame",y="CH2", color="b", label="CH2", s=1)
-        # data_df.plot.scatter(x="frame", y="CH1", color="g", label="CH1", s=1, ax=ax)
-        # plt.xlabel(f"Time ({unit_of_interval})")
+        ax1 = data_df.plot(kind="scatter", x="frame",y="CH2", color="b", label="CH2", s=1)
+        data_df.plot.scatter(x="frame", y="CH1", color="g", label="CH1", s=1, ax=ax1)
+        ax1.set_xlabel(f"Time ({unit_of_interval})")
 
         F = np.fft.fft(data_df["CH2"]) # 変換結果
         N = len(data_df["CH2"])
@@ -100,9 +103,6 @@ def fft(filepath, scale="log"):
         # ax[2].plot(freq, label="Frequency")
         # ax[2].legend()
         # ax[2].set_xlabel("Number of data")
-
-        # plt.show()
-
         Amp = np.abs(F/(N/2)) # 振幅
         
         fft_list = [[freq[i], Amp[i]] for i in range(len(freq))]
@@ -110,13 +110,17 @@ def fft(filepath, scale="log"):
         primary_freq_ch2 = primary_freq(df_fft, interval=interval, interval_unit=unit_of_interval, data_type="fft")
         print(f"Peak freq(CH2): {primary_freq_ch2}")
 
-        fig, ax = plt.subplots()
         # ax.plot(freq[1:int(N/2)], Amp[1:int(N/2)])
-        ax.plot(freq[1:int(N/2)], Amp[1:int(N/2)])
+        ax2.plot(freq[1:int(N/2)], Amp[1:int(N/2)])
+        ax2.set_xlabel("Freqency [Hz]")
+        ax2.set_ylabel("Amplitude")
+        ax2.grid()
+        
+        fig.tight_layout()
+        
+        plt.title(filepath)
         plt.xscale("log")
-        ax.set_xlabel("Freqency [Hz]")
-        ax.set_ylabel("Amplitude")
-        ax.grid()
+        
         plt.show()
         
     elif scale=="linear":
